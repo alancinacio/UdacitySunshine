@@ -1,6 +1,5 @@
 package com.acpi2222.sunshine.app;
 
-import android.content.Context;
 import android.content.Intent;
 import android.net.Uri;
 import android.os.AsyncTask;
@@ -16,7 +15,6 @@ import android.view.ViewGroup;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.ListView;
-import android.widget.Toast;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -40,7 +38,7 @@ import java.util.List;
  */
 public class ForecastFragment extends Fragment {
 
-    private ArrayAdapter<String> mForecastAdapter;
+    private ArrayAdapter<WeatherInfo> mForecastAdapter;
 
     public ForecastFragment() {
     }
@@ -69,20 +67,18 @@ public class ForecastFragment extends Fragment {
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
 
-        String[] dummyForecast = {
-                "Today - Sunny - 77/60",
-                "Tomorrow - Sunny - 80/70",
-                "Wed - Cloudy - 55/40",
-                "Thur - Snow - 10/8",
-                "Fri - Rain - 30/28",
-                "Sat - Partially Cloudy - 50/45",
-                "Sun - Hail - 45/40"
+        WeatherInfo[] dummyForecast = {
+                new WeatherInfo(),
+                new WeatherInfo()
         };
 
-        List<String> forecast = new ArrayList<String>(Arrays.asList(dummyForecast));
+        //List<String> forecast = new ArrayList<String>(Arrays.asList(dummyForecast));
+
+
+        List<WeatherInfo> forecast = new ArrayList<WeatherInfo>(Arrays.asList(dummyForecast));
 
         mForecastAdapter =
-                new ArrayAdapter<String>(
+                new ArrayAdapter<WeatherInfo>(
                         getActivity(),
                         R.layout.list_item_forecast,
                         R.id.list_item_forecast_textview,
@@ -95,8 +91,8 @@ public class ForecastFragment extends Fragment {
         listView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
         public void onItemClick(AdapterView<?> adapterView, View view, int i, long l) {
-                String forecast = mForecastAdapter.getItem(i);
-                Intent detailActivityIntent = new Intent(getActivity(), DetailActivity.class).putExtra(Intent.EXTRA_TEXT, forecast);
+                WeatherInfo forecast = mForecastAdapter.getItem(i);
+                Intent detailActivityIntent = new Intent(getActivity(), DetailActivity.class).putExtra(Intent.EXTRA_TEXT, forecast.toString());
                 startActivity(detailActivityIntent);
             }
         });
@@ -109,32 +105,35 @@ public class ForecastFragment extends Fragment {
 //        return shortDateFormat.format(time)   ;
 //    }
 
-    private String formatHighLows(double high, double low){
-        long roundedHigh = Math.round(high);
-        long roundedLow = Math.round(low);
-        String highLowStr = roundedHigh + "/" + roundedLow;
-        return highLowStr;
+    private String formatDoubles(double dbl){
+        long rounded = Math.round(dbl);
+        return String.valueOf(rounded);
     }
 
-    private String[] getWeatherDataFromJson(String jsonString, int numDays) throws JSONException{
+    private WeatherInfo[] getWeatherDataFromJson(String jsonString, int numDays) throws JSONException{
         final String LIST = "list";
         final String WEATHER = "weather";
         final String TEMP = "temp";
         final String MAX = "max";
         final String MIN = "min";
         final String DESC = "main";
+        final String PRES = "pressure";
+        final String HUM = "humidity";
 
         JSONObject forecastJson = new JSONObject(jsonString);
         JSONArray days = forecastJson.getJSONArray(LIST);
 
         DateFormat dateFormat = new SimpleDateFormat("EEE MMM dd");
 
-        String[] results = new String[numDays];
+        WeatherInfo[] results = new WeatherInfo[numDays];
 
         for (int i = 0; i < days.length(); i++) {
             String day;
             String description;
-            String highAndLow;
+            String high;
+            String low;
+            String pressure;
+            String humidity;
 
             JSONObject dayObject = days.getJSONObject(i);
 
@@ -145,13 +144,23 @@ public class ForecastFragment extends Fragment {
 
             JSONObject weatherObject = dayObject.getJSONArray(WEATHER).getJSONObject(0);
             description = weatherObject.getString(DESC);
+            humidity = String.valueOf(dayObject.getDouble(HUM));
+            pressure =String.valueOf(dayObject.getDouble(PRES));
+
 
             JSONObject tempObject = dayObject.getJSONObject(TEMP);
-            double high = tempObject.getDouble(MAX);
-            double low = tempObject.getDouble(MIN);
+            high = formatDoubles(tempObject.getDouble(MAX));
+            low = formatDoubles(tempObject.getDouble(MIN));
 
-            highAndLow = formatHighLows(high, low);
-            results[i] = day + " - " + description + " - " +highAndLow;
+            WeatherInfo weatherInfo = new WeatherInfo();
+            weatherInfo.date = day;
+            weatherInfo.description = description;
+            weatherInfo.humidity = humidity;
+            weatherInfo.pressure = pressure;
+            weatherInfo.high = high;
+            weatherInfo.low = low;
+
+            results[i] = weatherInfo;
 
         }
 
@@ -159,14 +168,14 @@ public class ForecastFragment extends Fragment {
     }
 
 
-    public class FetchWeather extends AsyncTask<String, Void, String[]> {
+    public class FetchWeather extends AsyncTask<String, Void, WeatherInfo[]> {
 
         private final String LOG_TAG = FetchWeather.class.getSimpleName();
 
 
 
         @Override
-        protected String[] doInBackground(String... params) {
+        protected WeatherInfo[] doInBackground(String... params) {
 
             HttpURLConnection urlConnection = null;
             BufferedReader reader = null;
@@ -240,7 +249,7 @@ public class ForecastFragment extends Fragment {
         }
 
         @Override
-        protected void onPostExecute(String[] result) {
+        protected void onPostExecute(WeatherInfo[] result) {
             if (result != null) {
                 mForecastAdapter.clear();
                 mForecastAdapter.addAll(result);
