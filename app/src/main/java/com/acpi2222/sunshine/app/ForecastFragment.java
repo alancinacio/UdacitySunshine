@@ -38,7 +38,7 @@ import java.util.List;
  */
 public class ForecastFragment extends Fragment {
 
-    private ArrayAdapter<WeatherInfo> mForecastAdapter;
+    private ArrayAdapter<String> mForecastAdapter;
 
     public ForecastFragment() {
     }
@@ -67,18 +67,18 @@ public class ForecastFragment extends Fragment {
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
 
-        WeatherInfo[] dummyForecast = {
-                new WeatherInfo(),
-                new WeatherInfo()
+        String[] dummyForecast = {
+                "test 1 ",
+                "test 2 "
         };
 
         //List<String> forecast = new ArrayList<String>(Arrays.asList(dummyForecast));
 
 
-        List<WeatherInfo> forecast = new ArrayList<WeatherInfo>(Arrays.asList(dummyForecast));
+        List<String> forecast = new ArrayList<String>(Arrays.asList(dummyForecast));
 
         mForecastAdapter =
-                new ArrayAdapter<WeatherInfo>(
+                new ArrayAdapter<String>(
                         getActivity(),
                         R.layout.list_item_forecast,
                         R.id.list_item_forecast_textview,
@@ -91,7 +91,7 @@ public class ForecastFragment extends Fragment {
         listView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
         public void onItemClick(AdapterView<?> adapterView, View view, int i, long l) {
-                WeatherInfo forecast = mForecastAdapter.getItem(i);
+                String forecast = mForecastAdapter.getItem(i);
                 Intent detailActivityIntent = new Intent(getActivity(), DetailActivity.class).putExtra(Intent.EXTRA_TEXT, forecast.toString());
                 startActivity(detailActivityIntent);
             }
@@ -149,8 +149,8 @@ public class ForecastFragment extends Fragment {
 
 
             JSONObject tempObject = dayObject.getJSONObject(TEMP);
-            high = formatDoubles(tempObject.getDouble(MAX));
-            low = formatDoubles(tempObject.getDouble(MIN));
+            high = formatDoubles(32 + (tempObject.getDouble(MAX) * 9/5));
+            low = formatDoubles(32 + (tempObject.getDouble(MIN) * 9/5));
 
             WeatherInfo weatherInfo = new WeatherInfo();
             weatherInfo.date = day;
@@ -251,8 +251,13 @@ public class ForecastFragment extends Fragment {
         @Override
         protected void onPostExecute(WeatherInfo[] result) {
             if (result != null) {
+                List<String> lines = new ArrayList<String>();
+                for ( WeatherInfo w : result) {
+                    String line = w.date + " - " + w.description + " - " + w.low + " / " + w.high;
+                    lines.add(line);
+                }
                 mForecastAdapter.clear();
-                mForecastAdapter.addAll(result);
+                mForecastAdapter.addAll(lines);
             }
         }
     }
